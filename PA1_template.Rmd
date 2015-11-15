@@ -1,0 +1,152 @@
+---
+title: "Reproducible Research Peer Assessment 1"
+output: html_document
+---
+
+##Loading and Preprocessing the Data
+
+Load the data (i.e. read.csv())
+```{r}
+setwd('C:/Users/user/Desktop/PeerAssessment1')
+getwd()
+fileUrl<-"https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+list.files("activity_data")
+path <-'C:/Users/user/Desktop/PeerAssessment1/activity_data/activity.csv'
+activity_data<- read.csv(path, header = TRUE)
+head(activity_data)
+str(activity_data)
+
+```
+
+##Process/Transform the data
+
+```{r}
+activity_data$date <- as.Date(activity_data$date,format="%Y-%m-%d")
+activity_data$interval <- as.factor(activity_data$interval)
+head(activity_data)
+str(activity_data)
+```
+
+##What is mean total number of steps taken per day?
+
+Ignore the missing values in the dataset.
+
+```{r}
+library(ggplot2)
+total_steps_per_day <- aggregate(steps~date,activity_data,sum,na.rm=TRUE)
+head(total_steps_per_day)
+qplot(total_steps_per_day$steps,binwidth=1000,xlab="Interval",ylab="Frequency (count)",main="Total Number of Steps Taken Per Day")
+mean(total_steps_per_day$steps,na.rm=TRUE)
+median(total_steps_per_day$steps,na.rm=TRUE)
+```
+
+##What is the average daily activity pattern?
+
+Create a plot of the 5-minute interval and the average number of steps taken daily.
+```{r}
+library(ggplot2)
+daily_activity_average <- aggregate(x=list(steps=activity_data$steps),
+                                    by = list(interval=as.numeric(as.character(activity_data$interval))),
+                                    FUN= "mean",na.rm=TRUE)
+head(daily_activity_average)
+str(daily_activity_average)
+
+ggplot(daily_activity_average,aes(x=interval,y=steps))+
+        geom_line()+
+        labs(x="5-minute interval",y="Average Number of Steps Taken",title="Average Daily Activity Pattern")
+```
+
+Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```{r}
+max_num <- daily_activity_average[which.max(daily_activity_average$steps),]
+max_num
+max_num$steps
+```
+
+##Imputing missing values
+
+Calculate and report the total number of missing values in the dataset.
+
+```{r}
+missing_values<-is.na(activity_data$steps)
+head(missing_values)
+sum(missing_values)
+```
+
+Create a histogram of the total number of steps taken each day. 
+```{r}
+missing_filled<- function(steps,interval){
+        
+        values<-NA
+        if(is.na(steps))
+                values <- (daily_activity_average[daily_activity_average$interval == interval,"steps"])
+        else
+                values <- c(steps)
+        
+        return (values)
+}
+
+completed_data <- activity_data
+completed_data$steps<-mapply(missing_filled,completed_data$steps,completed_data$interval)
+head(completed_data)
+tail(completed_data)
+str(completed_data)
+new_total<-tapply(completed_data$steps,completed_data$date,FUN=sum)
+head(new_total)
+tail(new_total)
+str(new_total)
+qplot(new_total,binwidth=1000,xlab="Interval",ylab="Frequency(count)",main="Total Number of Steps Taken Per Day")
+```
+
+Calculate and report the mean and median total number of steps taken per day.
+```{r}
+mean(new_total)
+median(new_total)
+```
+
+####Do these values differ from the estimates from the first part of the assignment?
+
+Yes. These values do differ slightly from the estimates from the first part of the assignment. 
+
+Before imputing missing values with mean value, the value of mean and median are as below:-
+
+Mean = 10766.19
+Median = 10765.
+
+After imputing missing values with mean value, the value of mean and median are as below:-
+
+Mean = 10766.19
+Median = 10766.19.
+
+####What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+Since the missing values has been filled with the mean value, hence, we are able to observe that the mean value has remain unchanged. In addition, let's compare with the first part of the assignment, we are able to observe that the number of observations have increased due to the imputing missing values with the mean value. As a result, the median has been slightly increased from 10765 to 10766.19. Furthermore, the distribution is symmetric as the mean is equal to the median.
+
+
+##Are there differences in activity patterns between weekdays and weekends?
+```{r}
+weekday <- c("Monday","Tuesday","Wednesday","Thursday","Friday")
+final_activity <- completed_data
+final_activity$daytype <-as.factor(ifelse(is.element(weekdays(as.Date(final_activity$date)),weekday),"Weekday","Weekend"))
+head(final_activity)
+tail(final_activity)
+str(final_activity)
+
+```
+
+Create a plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+```{r}
+library(lattice)
+mean_comparison<-aggregate(steps~interval + daytype, final_activity,mean)
+xyplot(
+        mean_comparison$steps~interval | daytype,
+        mean_comparison,
+        type = "l",
+        layout = c(1,2),
+        xlab = "5-minute Interval",
+        ylab = "Average Number of Steps Taken",
+        main = "The Different of Activity Pattern between Weekdays and Weekends",
+        col = "purple"
+)
+```
