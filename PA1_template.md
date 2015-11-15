@@ -89,13 +89,6 @@ Ignore the missing values in the dataset.
 
 ```r
 library(ggplot2)
-```
-
-```
-## Warning: package 'ggplot2' was built under R version 3.2.2
-```
-
-```r
 total_steps_per_day <- aggregate(steps~date,activity_data,sum,na.rm=TRUE)
 head(total_steps_per_day)
 ```
@@ -390,13 +383,6 @@ Create a plot of the 5-minute interval (x-axis) and the average number of steps 
 
 ```r
 library(lattice)
-```
-
-```
-## Warning: package 'lattice' was built under R version 3.2.2
-```
-
-```r
 mean_comparison<-aggregate(steps~interval + daytype, final_activity,mean)
 xyplot(
         mean_comparison$steps~interval | daytype,
